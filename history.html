@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>チャット履歴 — Cantonese Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+HK:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans HK', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #1a1440, #24243e);
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: rgba(15, 12, 41, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-back {
+      background: rgba(139, 92, 246, 0.2);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    .btn-back:hover { background: rgba(139, 92, 246, 0.4); }
+
+    .btn-clear {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-clear:hover { background: rgba(239, 68, 68, 0.35); }
+
+    .count-badge {
+      background: rgba(139, 92, 246, 0.25);
+      color: #c4b5fd;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #8b8b9a;
+    }
+    .empty-state .emoji { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state h2 { font-size: 1.2rem; margin-bottom: 8px; color: #a0a0b0; }
+
+    .history-card {
+      background: rgba(30, 27, 55, 0.8);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s ease;
+    }
+    .history-card:hover {
+      border-color: rgba(139, 92, 246, 0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .card-side {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .card-side.user {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
+    }
+    .card-side.partner {
+      background: rgba(236, 72, 153, 0.2);
+      color: #f9a8d4;
+    }
+    .card-side.camera {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+    }
+
+    .card-time {
+      font-size: 0.75rem;
+      color: #6b6b7b;
+    }
+
+    .card-original {
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #f0f0f0;
+    }
+
+    .card-arrow {
+      font-size: 0.8rem;
+      color: #6b6b7b;
+      margin-bottom: 4px;
+    }
+
+    .card-translated {
+      font-size: 1rem;
+      color: #a78bfa;
+      margin-bottom: 6px;
+    }
+
+    .card-jyutping {
+      font-size: 0.8rem;
+      color: #60a5fa;
+      font-style: italic;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    .speak-btn {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      color: #c4b5fd;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .speak-btn:hover {
+      background: rgba(139, 92, 246, 0.35);
+    }
+    .speak-btn:active {
+      transform: scale(0.95);
+    }
+
+    .date-divider {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #7b7b8b;
+      padding: 16px 0 8px;
+      position: relative;
+    }
+    .date-divider::before,
+    .date-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 30%;
+      height: 1px;
+      background: rgba(139, 92, 246, 0.15);
+    }
+    .date-divider::before { left: 0; }
+    .date-divider::after { right: 0; }
+
+    .search-wrapper {
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(30, 27, 55, 0.9);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 10px;
+      color: #e0e0e0;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus {
+      border-color: rgba(139, 92, 246, 0.5);
+    }
+    .search-input::placeholder { color: #6b6b7b; }
+
+    @media (max-width: 480px) {
+      .header { padding: 12px 14px; }
+      .header h1 { font-size: 1rem; }
+      .container { padding: 12px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📝 チャット履歴</h1>
+    <div class="header-actions">
+      <span class="count-badge" id="count-badge">0件</span>
+      <button class="btn btn-clear" id="clear-btn" title="履歴をすべて削除">🗑️ 削除</button>
+      <a href="./index.html" class="btn btn-back">← チャットへ戻る</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="search-wrapper">
+      <input type="text" class="search-input" id="search-input" placeholder="🔍 検索（原文・翻訳・粤拼）...">
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <script>
+    const historyList = document.getElementById('history-list');
+    const countBadge = document.getElementById('count-badge');
+    const clearBtn = document.getElementById('clear-btn');
+    const searchInput = document.getElementById('search-input');
+
+    function loadHistory() {
+      try {
+        return JSON.parse(localStorage.getItem('chatHistory') || '[]');
+      } catch { return []; }
+    }
+
+    function formatDate(isoStr) {
+      const d = new Date(isoStr);
+      const now = new Date();
+      const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+      const ny = now.getFullYear(), nm = now.getMonth(), nday = now.getDate();
+      if (y === ny && m === nm && day === nday) return '今日';
+      const yesterday = new Date(now); yesterday.setDate(nday - 1);
+      if (y === yesterday.getFullYear() && m === yesterday.getMonth() && day === yesterday.getDate()) return '昨日';
+      return `${y}/${(m+1).toString().padStart(2,'0')}/${day.toString().padStart(2,'0')}`;
+    }
+
+    function formatTime(isoStr) {
+      const d = new Date(isoStr);
+      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function escapeAttr(str) {
+      if (!str) return '';
+      return str.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ');
+    }
+
+    function speak(text, lang) {
+      if (!text || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang;
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    }
+
+    function renderHistory(filter = '') {
+      let history = loadHistory();
+      const lf = filter.toLowerCase();
+      if (lf) {
+        history = history.filter(m =>
+          (m.original || '').toLowerCase().includes(lf) ||
+          (m.translated || '').toLowerCase().includes(lf) ||
+          (m.jyutping || '').toLowerCase().includes(lf) ||
+          (m.cantoneseText || '').toLowerCase().includes(lf)
+        );
+      }
+
+      countBadge.textContent = `${history.length}件`;
+
+      if (history.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-state">
+            <div class="emoji">📭</div>
+            <h2>${filter ? '検索結果なし' : 'チャット履歴がありません'}</h2>
+            <p>${filter ? '別のキーワードで検索してください' : 'チャットでメッセージを送信すると、ここに履歴が表示されます。'}</p>
+          </div>`;
+        return;
+      }
+
+      // Reverse to show newest first
+      const reversed = [...history].reverse();
+      let html = '';
+      let lastDate = '';
+
+      for (const msg of reversed) {
+        const date = formatDate(msg.time);
+        if (date !== lastDate) {
+          html += `<div class="date-divider">${date}</div>`;
+          lastDate = date;
+        }
+
+        const sideLabel = msg.side === 'user' ? '👤 YOU' : msg.side === 'camera' ? '📷 CAMERA' : '🙋 PARTNER';
+
+        let originalText, translatedText, cantoneseForSpeak, translatedForSpeak;
+        if (msg.side === 'camera') {
+          // Camera: original is Cantonese, translated is user lang
+          originalText = msg.cantoneseText || msg.original;
+          translatedText = msg.translated;
+          cantoneseForSpeak = msg.cantoneseText || msg.original;
+          translatedForSpeak = msg.translated;
+        } else if (msg.side === 'user') {
+          originalText = msg.original;
+          translatedText = msg.cantoneseText || msg.translated;
+          cantoneseForSpeak = msg.cantoneseText || msg.translated;
+          translatedForSpeak = msg.original;
+        } else {
+          originalText = msg.cantoneseText || msg.original;
+          translatedText = msg.translated;
+          cantoneseForSpeak = msg.cantoneseText || msg.original;
+          translatedForSpeak = msg.translated;
+        }
+
+        const userLang = localStorage.getItem('userLang') || 'en';
+        const transLangLabel = userLang === 'ja' ? '日' : 'EN';
+
+        html += `
+          <div class="history-card">
+            <div class="card-header">
+              <span class="card-side ${msg.side}">${sideLabel}</span>
+              <span class="card-time">${formatTime(msg.time)}</span>
+            </div>
+            <div class="card-original">${escapeHtml(originalText)}</div>
+            <div class="card-arrow">↓</div>
+            <div class="card-translated">${escapeHtml(translatedText)}</div>
+            ${msg.jyutping ? `<div class="card-jyutping">${escapeHtml(msg.jyutping)}</div>` : ''}
+            <div class="card-actions">
+              <button class="speak-btn" onclick="speak('${escapeAttr(cantoneseForSpeak)}','zh-HK')">🔊 粵</button>
+              <button class="speak-btn" onclick="speak('${escapeAttr(translatedForSpeak)}','${userLang === 'ja' ? 'ja-JP' : 'en-US'}')">🔊 ${transLangLabel}</button>
+            </div>
+          </div>`;
+      }
+
+      historyList.innerHTML = html;
+    }
+
+    clearBtn.addEventListener('click', () => {
+      if (confirm('チャット履歴をすべて削除しますか？')) {
+        localStorage.removeItem('chatHistory');
+        renderHistory();
+      }
+    });
+
+    let searchTimer;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => renderHistory(searchInput.value.trim()), 200);
+    });
+
+    renderHistory();
+  </script>
+</body>
+</html>

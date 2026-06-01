@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cantonese Chat — Real-time Translator</title>
+  <meta name="description" content="Cantonese chat translator for Hong Kong. Supports voice input/output. Real-time translation between English/Japanese and Cantonese." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+HK:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="app-logo">
+          <span class="logo-icon">💬</span>
+          <h1>粵語Chat</h1>
+        </div>
+      </div>
+      <div class="header-center">
+        <div class="language-toggle">
+          <button class="lang-btn" data-lang="ja" id="lang-ja">日本語</button>
+          <button class="lang-btn active" data-lang="en" id="lang-en">English</button>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="mode-indicator" id="mode-indicator">
+          <span class="mode-dot"></span>
+          <span class="mode-text">Your Mode</span>
+        </div>
+        <a href="./camera.html" class="settings-btn" title="カメラ翻訳" style="text-decoration:none;">📷</a>
+        <a href="./history.html" class="settings-btn" title="チャット履歴" style="text-decoration:none;">📝</a>
+        <button class="settings-btn" id="help-toggle" title="Help">❓</button>
+        <button class="settings-btn" id="settings-toggle" title="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Chat Area -->
+    <main class="chat-area" id="chat-area">
+      <div class="chat-welcome">
+        <div class="welcome-icon">🇭🇰</div>
+        <h2>Welcome to Cantonese Chat</h2>
+        <p>Select "You" (EN/JA → Cantonese) or<br>"Partner" (Cantonese → EN/JA) to start chatting.</p>
+      </div>
+    </main>
+
+    <!-- Word Detail Popup -->
+    <div class="word-popup" id="word-popup">
+      <div class="popup-content">
+        <button class="popup-close" id="popup-close">✕</button>
+        <div class="popup-header">
+          <span class="popup-word" id="popup-word"></span>
+          <span class="popup-jyutping" id="popup-jyutping"></span>
+        </div>
+        <div class="popup-meaning" id="popup-meaning"></div>
+        <div class="popup-section">
+          <h4>Synonyms</h4>
+          <div class="popup-tags" id="popup-synonyms"></div>
+        </div>
+        <div class="popup-section">
+          <h4>Antonyms</h4>
+          <div class="popup-tags" id="popup-antonyms"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Popup -->
+    <div class="word-popup" id="settings-popup">
+      <div class="popup-content">
+        <button class="popup-close" id="settings-close">✕</button>
+        <div class="popup-header">
+          <span class="popup-word">Settings</span>
+        </div>
+        
+        <div class="popup-section">
+          <h4>Translation Service</h4>
+          <div class="api-switcher">
+            <label class="api-option">
+              <input type="radio" name="api-service" value="mymemory" checked>
+              <span>MyMemory (Free)</span>
+            </label>
+            <label class="api-option">
+              <input type="radio" name="api-service" value="deepl">
+              <span>DeepL (Requires Key)</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="deepl-config" style="display: none;">
+          <div class="popup-section">
+            <h4>DeepL Plan & API Key</h4>
+            <div class="api-switcher" style="margin-bottom: 10px;">
+              <label class="api-option">
+                <input type="radio" name="deepl-plan" value="free" checked>
+                <span>Free (:fx)</span>
+              </label>
+              <label class="api-option">
+                <input type="radio" name="deepl-plan" value="pro">
+                <span>Pro</span>
+              </label>
+            </div>
+            <input type="password" id="deepl-key-input" class="settings-input" placeholder="Enter your DeepL API key">
+            <p class="settings-hint">Using DeepL API (Cantonese YUE supported)</p>
+          </div>
+        </div>
+
+        <div class="popup-section" style="margin-top: 16px;">
+          <h4>📷 Camera OCR (Gemini AI)</h4>
+          <input type="password" id="gemini-key-input" class="settings-input" placeholder="Enter your Gemini API key">
+          <p class="settings-hint">カメラ翻訳に必要です。<a href="https://aistudio.google.com/apikey" target="_blank" style="color:#60a5fa;">Google AI Studio</a>で無料取得できます。</p>
+        </div>
+
+        <div class="popup-actions" style="margin-top: 20px;">
+          <button class="save-btn" id="settings-save">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Popup -->
+    <div class="word-popup" id="help-popup">
+      <div class="popup-content">
+        <button class="popup-close" id="help-close">✕</button>
+        <div class="popup-header">
+          <span class="popup-word">How to Use (使い方)</span>
+        </div>
+        
+        <div class="popup-scrollable">
+          <div class="help-section">
+            <h3>💬 2つのモード</h3>
+            <p><strong>You モード:</strong> 英語または日本語で入力して、広東語（口語）に翻訳します。</p>
+            <p><strong>Partner モード:</strong> 相手の広東語（ボイス入力や手入力）を英語または日本語に翻訳します。</p>
+            <p>💡 メッセージ送信後、モードは<strong>自動的に You ↔ Partner を交互に切り替わります</strong>。会話の流れに合わせてスムーズにやり取りできます。手動で切り替えることも可能です。</p>
+          </div>
+
+          <div class="help-section">
+            <h3>🎙️ 音声入力</h3>
+            <p>マイクボタンを押して話すと、リアルタイムで声をテキスト化します。終了すると自動で翻訳が始まります。</p>
+          </div>
+
+          <div class="help-section">
+            <h3>📖 辞書・読み上げ</h3>
+            <p>チャット内の広東語をタップすると、<strong>粤拼 (Jyutping)</strong> や意味、類義語・反義語を確認できます。🔊ボタンでネイティブな発音を再生します。</p>
+          </div>
+
+          <div class="help-section">
+            <h3>📝 チャット履歴</h3>
+            <p>過去<strong>100件</strong>までのチャットを自動保存します。ヘッダーの📝ボタンから履歴ページを開いて、過去の会話を振り返り学習できます。</p>
+            <p>履歴ページでは<strong>キーワード検索</strong>も可能です。原文・翻訳・粤拼から検索できます。</p>
+          </div>
+
+          <div class="help-section">
+            <h3>📷 カメラ翻訳</h3>
+            <p>ヘッダーの📷ボタンからカメラを起動し、<strong>看板やメニューを撮影</strong>すると文字を自動認識します。認識した各文字の<strong>粤拼（発音）・意味・類義語</strong>を表示し、🔊で発音を再生できます。</p>
+          </div>
+
+          <div class="help-section">
+            <h3>⚙️ 翻訳エンジン (DeepL)</h3>
+            <p><strong>MyMemory:</strong> 設定なしですぐに使えます。</p>
+            <p><strong>DeepL:</strong> ⚙️設定から API Key を入力すると、より高精度な翻訳が可能です。無料版(Free)と有料版(Pro)の両方に対応しています。</p>
+          </div>
+
+          <div class="help-section">
+            <h3>💡 ヒント</h3>
+            <p>広東語の読みは英数字の組み合わせ（例: nei5 hou2）で表示され、数字は声調（トーン）を表します。</p>
+            <p>言語設定（日本語/English）はブラウザに記憶され、次回起動時に自動復元されます。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="input-area">
+      <div class="input-tabs">
+        <button class="tab-btn active" data-side="user" id="tab-user">
+          <span class="tab-icon">👤</span> You
+        </button>
+        <button class="tab-btn" data-side="partner" id="tab-partner">
+          <span class="tab-icon">🙋</span> Partner
+        </button>
+      </div>
+      <div class="input-row">
+        <button class="voice-btn" id="voice-btn" title="Voice Input">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          <span class="voice-pulse"></span>
+        </button>
+        <div class="input-wrapper">
+          <textarea id="message-input" placeholder="Type your message..." rows="1"></textarea>
+          <span class="input-lang-hint" id="input-lang-hint">Type in English → Translate to Cantonese</span>
+        </div>
+        <button class="send-btn" id="send-btn" title="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    if (window.location.protocol === 'file:') {
+      alert("【⚠️ エラー】\nファイルをダブルクリックして（file://）開いています。\n\nブラウザのセキュリティ制限によりJavaScriptがブロックされ、ボタンが一切機能しません。\n\n正しく動作させるには、Netlifyで公開されたURLを開くか、ターミナルで動作している「http://localhost:5173/」に直接アクセスしてください。");
+      document.body.innerHTML = '<div style="padding: 2rem; text-align: center; color: red;"><h1>エラー</h1><p>ファイルを直接開いているため機能しません。http://localhost:5173/ などからアクセスしてください。</p></div>';
+    }
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
