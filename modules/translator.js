@@ -10,7 +10,7 @@ const DEEPL_URL_FREE = 'https://api-free.deepl.com/v2/translate';
  * @param {string} text - Text to translate
  * @param {string} from - Source language code
  * @param {string} to - Target language code
- * @param {object} settings - { service: 'mymemory'|'deepl', apiKey: string }
+ * @param {object} settings - { service: 'mymemory'|'deepl'|'gemini', apiKey: string }
  * @returns {Promise<string>} Translated text
  */
 export async function translate(text, from, to, settings = { service: 'mymemory' }) {
@@ -18,6 +18,9 @@ export async function translate(text, from, to, settings = { service: 'mymemory'
 
     if (settings.service === 'deepl') {
         return translateDeepL(text, from, to, settings.apiKey, settings.plan);
+    }
+    if (settings.service === 'gemini') {
+        return translateGemini(text, from, to, settings.geminiApiKey);
     }
     return translateMyMemory(text, from, to);
 }
@@ -111,4 +114,57 @@ export function getLangPair(side, userLang) {
     } else {
         return { from: 'yue', to: userLang };
     }
+}
+
+/**
+ * Handle Gemini API Translation
+ */
+const GEMINI_TRANSLATE_MODELS = [
+    'gemini-3.1-flash-lite-preview',
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
+];
+
+const LANG_NAMES = {
+    'en': 'English', 'ja': 'Japanese', 'zh': 'Chinese',
+    'yue': 'Cantonese Chinese', 'ko': 'Korean',
+};
+
+async function translateGemini(text, from, to, apiKey) {
+    if (!apiKey) throw new Error('Gemini API Keyが未設定です。設定から入力してください。');
+
+    const fromName = LANG_NAMES[from] || from;
+    const toName = LANG_NAMES[to] || to;
+    const prompt = `Translate the following text from ${fromName} to ${toName}. Return ONLY the translated text, no explanations or extra formatting.\n\n${text}`;
+
+    let lastError = null;
+    for (const model of GEMINI_TRANSLATE_MODELS) {
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+                }),
+            });
+
+            if (response.status === 429 || response.status === 404) {
+                lastError = `Model ${model}: ${response.status}`;
+                continue;
+            }
+            if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+
+            const data = await response.json();
+            const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (result) return result.trim();
+            throw new Error('No translation returned');
+        } catch (err) {
+            lastError = err.message;
+            if (err.message.includes('429') || err.message.includes('404')) continue;
+            throw err;
+        }
+    }
+    throw new Error(`Gemini翻訳失敗: ${lastError}`);
 }

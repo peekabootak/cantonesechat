@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+HK:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css" />
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#6c5ce7" />
 </head>
 <body>
   <div id="app">
@@ -32,7 +34,9 @@
           <span class="mode-text">Your Mode</span>
         </div>
         <a href="./camera.html" class="settings-btn" title="カメラ翻訳" style="text-decoration:none;">📷</a>
+        <a href="./favorites.html" class="settings-btn" title="単語帳" style="text-decoration:none;">⭐</a>
         <a href="./history.html" class="settings-btn" title="チャット履歴" style="text-decoration:none;">📝</a>
+        <button class="settings-btn" id="theme-toggle" title="テーマ切替">🌙</button>
         <button class="settings-btn" id="help-toggle" title="Help">❓</button>
         <button class="settings-btn" id="settings-toggle" title="Settings">⚙️</button>
       </div>
@@ -81,6 +85,10 @@
             <label class="api-option">
               <input type="radio" name="api-service" value="mymemory" checked>
               <span>MyMemory (Free)</span>
+            </label>
+            <label class="api-option">
+              <input type="radio" name="api-service" value="gemini">
+              <span>Gemini AI (高品質)</span>
             </label>
             <label class="api-option">
               <input type="radio" name="api-service" value="deepl">
@@ -212,5 +220,15 @@
     }
   </script>
   <script type="module" src="./main.js"></script>
+  <script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.warn('SW registration failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>

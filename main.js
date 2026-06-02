@@ -211,7 +211,8 @@ async function handleSend() {
         const translated = await translate(text, from, to, {
             service: state.translationService,
             apiKey: state.deeplApiKey,
-            plan: state.deeplPlan
+            plan: state.deeplPlan,
+            geminiApiKey: state.geminiApiKey
         });
 
         // Determine which text is Cantonese for Jyutping
@@ -542,6 +543,32 @@ function showWordPopup(word) {
     }
 
     wordPopup.classList.add('active');
+
+    // Add/update favorites button in popup
+    let favBtn = wordPopup.querySelector('.popup-fav-btn');
+    if (!favBtn) {
+        favBtn = document.createElement('button');
+        favBtn.className = 'popup-fav-btn';
+        favBtn.style.cssText = 'margin-top:12px; padding:8px 16px; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; border-radius:10px; font-size:16px; cursor:pointer; width:100%;';
+        wordPopup.querySelector('.popup-content').appendChild(favBtn);
+    }
+    const favs = JSON.parse(localStorage.getItem('favoriteWords') || '[]');
+    const isSaved = favs.some(f => f.word === word);
+    favBtn.textContent = isSaved ? '✅ 追加済み' : '⭐ 単語帳に追加';
+    favBtn.style.color = isSaved ? '#86efac' : '#fbbf24';
+    favBtn.onclick = () => {
+        const currentFavs = JSON.parse(localStorage.getItem('favoriteWords') || '[]');
+        if (currentFavs.some(f => f.word === word)) return;
+        currentFavs.push({
+            word: word,
+            jyutping: popupJyutping.textContent,
+            meaning: popupMeaning.textContent,
+            addedAt: new Date().toISOString(),
+        });
+        localStorage.setItem('favoriteWords', JSON.stringify(currentFavs));
+        favBtn.textContent = '✅ 追加済み';
+        favBtn.style.color = '#86efac';
+    };
 }
 
 function closePopup() {
@@ -668,6 +695,33 @@ function escapeAttr(text) {
 }
 
 // ═══════════════════════════
+// Theme Toggle
+// ═══════════════════════════
+function initTheme() {
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    updateThemeButton(saved);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateThemeButton(next);
+}
+
+function updateThemeButton(theme) {
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+
+// ═══════════════════════════
 // Start
 // ═══════════════════════════
-document.addEventListener('DOMContentLoaded', init);
+initTheme();
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    const themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+});

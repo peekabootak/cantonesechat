@@ -410,6 +410,73 @@
       color: #60a5fa;
       text-decoration: underline;
     }
+
+    /* Tappable words */
+    .cam-word {
+      display: inline;
+      padding: 2px 1px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cam-word:active { background: rgba(139,92,246,0.3); }
+
+    /* Word popup overlay */
+    .word-popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .word-popup-overlay.active { display: flex; }
+
+    .word-popup-card {
+      background: rgba(20,17,45,0.97);
+      border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 340px;
+      width: 100%;
+      backdrop-filter: blur(20px);
+    }
+    .wp-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
+    .wp-word { font-size: 2rem; color: #f0f0f0; }
+    .wp-jyutping { font-size: 1rem; color: #a78bfa; font-style: italic; margin-top: 4px; }
+    .wp-close { background: none; border: none; color: #6b6b7b; font-size: 1.5rem; cursor: pointer; padding: 4px; }
+    .wp-meaning { font-size: 0.95rem; color: #c4b5fd; margin-bottom: 12px; line-height: 1.5; }
+    .wp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .wp-btn {
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.25);
+      color: #c4b5fd;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .wp-btn:active { transform: scale(0.95); background: rgba(139,92,246,0.35); }
+    .wp-btn.fav { color: #fbbf24; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.1); }
+    .wp-btn.fav.saved { color: #86efac; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.1); }
+
+    /* Continue shooting button */
+    .continue-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .continue-btn:active { transform: scale(0.98); opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -457,9 +524,27 @@
     <div class="results-scroll" id="results-scroll"></div>
   </div>
 
+  <!-- Word Popup -->
+  <div class="word-popup-overlay" id="word-popup-overlay">
+    <div class="word-popup-card">
+      <div class="wp-header">
+        <div>
+          <div class="wp-word" id="wp-word"></div>
+          <div class="wp-jyutping" id="wp-jyutping"></div>
+        </div>
+        <button class="wp-close" id="wp-close">✕</button>
+      </div>
+      <div class="wp-meaning" id="wp-meaning"></div>
+      <div class="wp-actions">
+        <button class="wp-btn" id="wp-speak">🔊 発音</button>
+        <button class="wp-btn fav" id="wp-fav">⭐ 単語帳に追加</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
-    import { initDictionary } from './modules/dictionary.js';
-    import { initJyutpingDictionary, toJyutping } from './modules/jyutping.js';
+    import { initDictionary, lookupWord, hasEntry, getAllWords } from './modules/dictionary.js';
+    import { initJyutpingDictionary, toJyutping, toJyutpingSegments } from './modules/jyutping.js';
     import { translate } from './modules/translator.js';
 
     // State
@@ -692,12 +777,22 @@
       // Generate thumbnail of captured image
       const thumbSrc = canvas.toDataURL('image/jpeg', 0.6);
 
+      // Build tappable word segments
+      const allWords = getAllWords();
+      const segments = toJyutpingSegments(chineseOnly, allWords);
+      const wordsHtml = segments.map(seg => {
+        if (seg.isChinese && seg.text.trim()) {
+          return `<span class="cam-word" data-word="${escapeHtml(seg.text)}" data-jp="${escapeHtml(seg.jyutping)}">${escapeHtml(seg.text)}</span>`;
+        }
+        return escapeHtml(seg.text);
+      }).join('');
+
       resultsScroll.innerHTML = `
         <div class="result-section">
           <div class="result-label">📷 認識範囲（撮影画像全体）</div>
           <img class="captured-thumb" src="${thumbSrc}" alt="撮影画像" />
-          <div class="result-label" style="margin-top:4px;">認識テキスト（広東語）</div>
-          <div class="result-text">${escapeHtml(chineseOnly)}</div>
+          <div class="result-label" style="margin-top:4px;">認識テキスト（タップで辞書検索）</div>
+          <div class="result-text">${wordsHtml}</div>
           <div class="result-jyutping">${escapeHtml(jyutping)}</div>
           <div class="result-actions">
             <button class="speak-btn" onclick="speakText('${escapeAttr(chineseOnly)}','zh-HK')">🔊 広東語</button>
@@ -707,7 +802,19 @@
           <div class="result-label">翻訳（${transLangLabel}）</div>
           <div class="translating-text" id="translation-text">翻訳中...</div>
           <div class="result-actions" id="translation-actions" style="display:none;"></div>
-        </div>`;
+        </div>
+        <button class="continue-btn" id="continue-shooting">📷 続けて撮影</button>`;
+
+      // Bind word taps
+      resultsScroll.querySelectorAll('.cam-word').forEach(el => {
+        el.addEventListener('click', () => showWordPopup(el.dataset.word, el.dataset.jp));
+      });
+
+      // Bind continue shooting
+      document.getElementById('continue-shooting')?.addEventListener('click', () => {
+        resultsPanel.classList.remove('open');
+        retake();
+      });
 
       resultsPanel.classList.add('open');
 
@@ -800,12 +907,70 @@
       window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
+    // ═══════════════════════════
+    // Word Popup
+    // ═══════════════════════════
+    const wpOverlay = document.getElementById('word-popup-overlay');
+    const wpWord = document.getElementById('wp-word');
+    const wpJyutping = document.getElementById('wp-jyutping');
+    const wpMeaning = document.getElementById('wp-meaning');
+    const wpSpeak = document.getElementById('wp-speak');
+    const wpFav = document.getElementById('wp-fav');
+    const wpClose = document.getElementById('wp-close');
+    let currentPopupWord = '';
+
+    function showWordPopup(word, jp) {
+      currentPopupWord = word;
+      wpWord.textContent = word;
+      wpJyutping.textContent = jp || toJyutping(word);
+
+      const entry = lookupWord(word);
+      if (entry) {
+        const meanings = [];
+        if (entry.meaning_en) meanings.push(entry.meaning_en);
+        if (entry.meaning_ja) meanings.push(entry.meaning_ja);
+        wpMeaning.textContent = meanings.join(' / ') || '';
+      } else {
+        wpMeaning.textContent = '';
+      }
+
+      // Check if already in favorites
+      const favs = JSON.parse(localStorage.getItem('favoriteWords') || '[]');
+      const isSaved = favs.some(f => f.word === word);
+      wpFav.textContent = isSaved ? '✅ 追加済み' : '⭐ 単語帳に追加';
+      wpFav.className = isSaved ? 'wp-btn fav saved' : 'wp-btn fav';
+
+      wpOverlay.classList.add('active');
+    }
+
+    wpClose.addEventListener('click', () => wpOverlay.classList.remove('active'));
+    wpOverlay.addEventListener('click', (e) => { if (e.target === wpOverlay) wpOverlay.classList.remove('active'); });
+
+    wpSpeak.addEventListener('click', () => {
+      if (currentPopupWord) window.speakText(currentPopupWord, 'zh-HK');
+    });
+
+    wpFav.addEventListener('click', () => {
+      if (!currentPopupWord) return;
+      const favs = JSON.parse(localStorage.getItem('favoriteWords') || '[]');
+      if (favs.some(f => f.word === currentPopupWord)) return;
+      favs.push({
+        word: currentPopupWord,
+        jyutping: wpJyutping.textContent,
+        meaning: wpMeaning.textContent,
+        addedAt: new Date().toISOString(),
+      });
+      localStorage.setItem('favoriteWords', JSON.stringify(favs));
+      wpFav.textContent = '✅ 追加済み';
+      wpFav.className = 'wp-btn fav saved';
+    });
+
     // Events
     startBtn.addEventListener('click', startCamera);
     captureBtn.addEventListener('click', captureFrame);
     flipBtn.addEventListener('click', flipCamera);
     retakeBtn.addEventListener('click', retake);
-    resultsClose.addEventListener('click', () => resultsPanel.classList.remove('open'));
+    resultsClose.addEventListener('click', () => { resultsPanel.classList.remove('open'); retake(); });
 
     // Init dictionaries
     (async () => {
