@@ -120,9 +120,9 @@ export function getLangPair(side, userLang) {
  * Handle Gemini API Translation
  */
 const GEMINI_TRANSLATE_MODELS = [
-    'gemini-3.1-flash-lite-preview',
     'gemini-2.5-flash-lite',
     'gemini-2.5-flash',
+    'gemini-2.0-flash-lite',
 ];
 
 const LANG_NAMES = {
@@ -150,7 +150,7 @@ async function translateGemini(text, from, to, apiKey) {
                 }),
             });
 
-            if (response.status === 429 || response.status === 404) {
+            if (response.status === 400 || response.status === 404 || response.status === 429) {
                 lastError = `Model ${model}: ${response.status}`;
                 continue;
             }
@@ -162,7 +162,7 @@ async function translateGemini(text, from, to, apiKey) {
             throw new Error('No translation returned');
         } catch (err) {
             lastError = err.message;
-            if (err.message.includes('429') || err.message.includes('404')) continue;
+            if (err.message.includes('400') || err.message.includes('404') || err.message.includes('429')) continue;
             throw err;
         }
     }
