@@ -2,6 +2,7 @@
    CSS Custom Properties
    =========================== */
 :root {
+  color-scheme: dark;
   --bg-primary: #0a0e1a;
   --bg-secondary: #111827;
   --bg-chat: #0d1220;
@@ -34,6 +35,7 @@
 
 /* Light Theme Override */
 [data-theme="light"] {
+  color-scheme: light;
   --bg-primary: #f5f5fa;
   --bg-secondary: #e8e8f0;
   --bg-chat: #f0f0f8;
