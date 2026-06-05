@@ -120,9 +120,11 @@ export function getLangPair(side, userLang) {
  * Handle Gemini API Translation
  */
 const GEMINI_TRANSLATE_MODELS = [
-    'gemini-2.5-flash-lite',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash-lite',
+    'gemini-3.1-flash-lite',   // RPM 15 — highest free tier rate
+    'gemini-2.5-flash-lite',   // RPM 10
+    'gemini-3.5-flash',        // RPM 5
+    'gemini-3-flash',          // RPM 5
+    'gemini-2.5-flash',        // RPM 5
 ];
 
 const LANG_NAMES = {
