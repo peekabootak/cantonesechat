@@ -170,7 +170,7 @@ body {
   border: none;
   border-radius: var(--radius-lg);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-family: var(--font-sans);
   font-size: 0.8rem;
   font-weight: 500;
@@ -181,6 +181,8 @@ body {
 .lang-btn.active {
   background: var(--gradient-user);
   color: white;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   box-shadow: var(--shadow-glow);
 }
 
